@@ -3,6 +3,8 @@ package com.bluka1.springboot.myfirstfullstackapp.todo;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.validation.BindingResult;
@@ -26,14 +28,14 @@ public class TodoController {
 
 	@RequestMapping("/list-todos")
 	public String listAllTodos(ModelMap model) {
-		List<Todo> todos = todoService.findByUsername("bluka1");
+		List<Todo> todos = todoService.findByUsername(getLoggedinUsername(model));
 		model.put("todos", todos);
 		return "listTodos";
 	}
-	
+
 	@RequestMapping(value="/add-todo", method = RequestMethod.GET)
 	public String showAddNewTodoPage(ModelMap model) {
-		Todo todo = new Todo(0, (String)model.get("name"), "", LocalDate.now().plusYears(1), false);
+		Todo todo = new Todo(0, getLoggedinUsername(model), "", LocalDate.now().plusYears(1), false);
 		model.put("todo", todo);
 		return "todo";
 	}
@@ -44,7 +46,7 @@ public class TodoController {
 		if (result.hasErrors()) {
 			return "todo";
 		}
-		todoService.addTodo((String)model.get("name"), todo.getDescription(), todo.getTargetDate(), false);
+		todoService.addTodo(getLoggedinUsername(model), todo.getDescription(), todo.getTargetDate(), false);
 		model.put("todos", todoService.findByUsername("bluka1"));
 		return "redirect:list-todos";
 	}
@@ -67,9 +69,14 @@ public class TodoController {
 			return "todo";
 		}
 		
-		String username = (String)model.get("name");
+		String username = getLoggedinUsername(model);
 		todo.setUsername(username);
 		todoService.updateTodo(todo);
 		return "redirect:list-todos";
+	}
+	
+	private String getLoggedinUsername(ModelMap model) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		return authentication.getName();
 	}
 }
